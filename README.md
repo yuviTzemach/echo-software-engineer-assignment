@@ -45,3 +45,16 @@ docker stop patched
 | :--- | :--- |
 | `nginx:1.25-bookworm` | 273MB |
 | `nginx-patched:1.25-bookworm` | 142MB |
+
+## Compatibility test
+
+`make test` boots `nginx:1.25-bookworm` and `nginx-patched:1.25-bookworm`, sends the same requests to both, and fails if status / body / headers differ (`Date` is ignored because it changes every request).
+
+Covers: `GET /`, a 404, `HEAD /`, a 256KiB POST, a 2MiB POST (over nginx's default `client_max_body_size`), a malformed HTTP/1.1 request with no Host header, and the same two GETs against a custom `conf.d` file.
+
+If the patched image isn't tagged `nginx-patched:1.25-bookworm` yet:
+
+```bash
+docker tag nginx-patched-test:latest nginx-patched:1.25-bookworm
+make test
+```
