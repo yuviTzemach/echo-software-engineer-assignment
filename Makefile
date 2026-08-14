@@ -3,7 +3,7 @@ DEB_REVISION  ?= 1~bookworm
 IMAGE_NAME    ?= nginx-patched
 IMAGE_TAG     ?= 1.25-bookworm
 
-.PHONY: deb image clean
+.PHONY: deb image test clean
 
 deb:
 	docker build \
@@ -20,6 +20,9 @@ image: deb
 		-f Containerfile \
 		-t $(IMAGE_NAME):$(IMAGE_TAG) \
 		.
+
+test:
+	python3 test/test.py
 
 clean:
 	rm -rf build/output
