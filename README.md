@@ -58,3 +58,14 @@ If the patched image isn't tagged `nginx-patched:1.25-bookworm` yet:
 docker tag nginx-patched-test:latest nginx-patched:1.25-bookworm
 make test
 ```
+
+## Rescan / VEX
+
+Scanners key off package name + version. After a backport the nginx package is still `1.25.5`, so they keep reporting CVE-2026-42533 even though the code is patched. OpenSSL is a real version bump, so CVE-2024-6119 should actually disappear.
+
+```bash
+make scan      
+make scan-vex 
+```
+
+The VEX file tells Trivy/Grype the backport is `fixed`. After `make scan-vex`, CVE-2026-42533 should drop out of the report.
