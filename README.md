@@ -2,13 +2,14 @@
 
 ## Vulnerability Analysis & CVE Selection
 
-After running the baseline security scan on `nginx:1.25-bookworm`, I selected two critical vulnerabilities to fix:
+After running the baseline security scans on `nginx:1.25-bookworm` (`baseline-trivy.txt`, `baseline-grype.txt`), I selected two key vulnerabilities to fix using two different strategies:
 
-| CVE ID | Package | Severity | Installed Version | Fixed Version | Risk & Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **CVE-2024-45491** | `libexpat1` | **CRITICAL** | `2.5.0-1` | `2.5.0-1+deb12u1` | Integer overflow in XML parsing library |
-| **CVE-2024-37371** | `libkrb5-3` | **CRITICAL** | `1.20.1-2+deb12u1` | `1.20.1-2+deb12u2` | Security flaw in Kerberos authentication tokens |
+| CVE ID | Package | Severity | Fix Method | Current Version | Fixed Version | Risk & Description |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **CVE-2024-6119** | `openssl` / `libssl3` | **High** | Version bump | `3.0.11-1~deb12u2` | `3.0.14-1~deb12u2` | Memory read issue in OpenSSL certificate validation that can crash the service (DoS). An official updated package is available. |
+| **CVE-2026-42533** | `nginx` | **Critical** (CVSS 9.2) | Backport patch | `1.25.5-1~bookworm` | Fixed only in 1.30.4+ / 1.31.3+ | Buffer overflow in Nginx regex handling that can cause worker crashes or code execution. No official fix exists for version 1.25.x, requiring a manual source patch. |
 
-### Why I chose these CVEs
-- **High Security Risk:** Both vulnerabilities are marked as **CRITICAL**, which means they pose a high security risk to the container.
-- **Easy to Fix:** Both packages have updated versions available in the Debian repository, so we can fix them directly during the build process.
+### Why I Chose These CVEs
+
+- **CVE-2026-42533 (Backport Patch):** This is a Critical vulnerability without an official fix for the Nginx 1.25.x branch. It represents a real-world scenario where upgrading the whole minor version isn't an option, so I manually backported the patch into our source code.
+- **CVE-2024-6119 (Version Bump):** This is a High-severity OpenSSL issue with an existing Debian fix. Upgrading the package version during the build process provides a clean and effective solution.
