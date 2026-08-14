@@ -19,3 +19,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /build
 COPY patches/ patches/
 COPY build.sh build.sh
+
+RUN NGINX_VERSION=${NGINX_VERSION} DEB_REVISION=${DEB_REVISION} \
+    bash /build/build.sh
+
+FROM scratch AS export
+COPY --from=build /build/out/ /
