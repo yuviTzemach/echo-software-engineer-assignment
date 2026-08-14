@@ -1,9 +1,6 @@
 #!/bin/bash
-# Builds the patched nginx .deb from upstream source.
-# Runs inside debian:bookworm-slim — see build/Dockerfile. No pre-baked
-# binaries: we fetch the exact source package the upstream image shipped
-# (nginx 1.25.5-1~bookworm from nginx.org), apply our CVE patches, and
-# compile the .deb ourselves.
+# Build the patched nginx .deb from source.
+# This runs inside the Debian build container, so everything is built from scratch.
 set -euo pipefail
 
 NGINX_VERSION="${NGINX_VERSION:-1.25.5}"
@@ -14,19 +11,24 @@ DSC="nginx_${NGINX_VERSION}-${DEB_REVISION}.dsc"
 ORIG="nginx_${NGINX_VERSION}.orig.tar.gz"
 DEBIAN_TAR="nginx_${NGINX_VERSION}-${DEB_REVISION}.debian.tar.xz"
 
-echo "=== [1/4] Fetching upstream source package ${NGINX_VERSION}-${DEB_REVISION} ==="
+echo "=== Fetching upstream source package ${NGINX_VERSION}-${DEB_REVISION} ==="
+
+# Download the source files we need to build the package.
 for f in "$DSC" "$ORIG" "$DEBIAN_TAR"; do
     curl -fsSL -o "$f" "$SRC_BASE/$f"
 done
-# --no-check: we did not import the nginx.org signing key into this
-# throwaway build container; integrity comes from fetching over the
-# official pool plus the .dsc checksums that dpkg-source still verifies.
+
+# dpkg-source will check that the downloaded files match the checksums in the .dsc file.
 dpkg-source --no-check -x "$DSC" nginx-src
 
-echo "=== [2/4] Registering CVE patches with the Debian patch system (quilt) ==="
+echo "=== Registering CVE patches with the Debian patch system (quilt) ==="
+
 cd nginx-src
 mkdir -p debian/patches
 touch debian/patches/series
+
+# Copy our patches into the Debian source tree and add them to quilt's
+# patch list so they are applied automatically during the build.
 for p in /build/patches/*.patch; do
     cp "$p" debian/patches/
     basename "$p" >> debian/patches/series
@@ -34,12 +36,15 @@ done
 cat debian/patches/series
 
 echo "=== [3/4] Compiling the .deb from source (dpkg-buildpackage) ==="
-# -b binary only, -uc -us unsigned; quilt patches in series are applied
-# automatically before the build.
+
+# Build the package without signing it. 
+# The patches listed above are applied automatically as part of the Debian build process.
 dpkg-buildpackage -b -uc -us
 
 echo "=== [4/4] Collecting artifacts ==="
 cd ..
 mkdir -p out
+
+# Put the generated packages and build metadata in the output directory.
 cp ./*.deb ./*.buildinfo ./*.changes out/
 ls -la out/
